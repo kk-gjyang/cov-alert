@@ -12,4 +12,4 @@ https://developers.google.com/gmail/api/quickstart/nodejs
 ```TO=my@gmail.com TOKEN_PATH=./my_token.json node renew```
 
 ## Run:
-```TO=my@gmail.com FROM=my@gmail.com CLIENT_SECRET=./my_secret_key.json TOKEN_PATH=./my_token.json node index```
+```TO=my@gmail.com BCC=another@gmail.com FROM=my@gmail.com CLIENT_SECRET=./my_secret_key.json TOKEN_PATH=./my_token.json node index```

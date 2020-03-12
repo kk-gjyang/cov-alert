@@ -4,8 +4,8 @@ const readline = require('readline');
 const { google } = require('googleapis');
 const fs = require('fs');
 
+const dataFile = './coronaData.json';
 const secret = fs.readFileSync(process.env.CLIENT_SECRET);
-let coronaData = {};
 
 // If modifying these scopes, delete token.json.
 const SCOPES = [
@@ -32,8 +32,10 @@ cron.schedule('* * * * *', async () => {
     });
   }
 
+  const coronaData = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
   const mail = {
     to: process.env.TO,
+    bcc: process.env.BCC,
     from: process.env.FROM,
     subject: '',
     content: ''
@@ -56,9 +58,10 @@ cron.schedule('* * * * *', async () => {
   });
 
   if (coronaData.title !== newData.title || coronaData.negative !== newData.negative || coronaData.positive !== newData.positive) {
-    mail.subject = `[+${newData.positive}] ${newData.title}`;
+    mail.subject = `+[${newData.positive}] ${newData.title}`;
     mail.content = JSON.stringify(newData, null, 2);
-    coronaData = newData;
+
+    fs.writeFileSync(dataFile, JSON.stringify(newData));
 
     //send mail
     authorize(JSON.parse(secret), sendMessage);
@@ -69,11 +72,12 @@ cron.schedule('* * * * *', async () => {
   browser.close();
 });
 
-function makeBody(to, from, subject, message) {
+function makeBody(to, bcc, from, subject, message) {
   var str = ["Content-Type: text/plain; charset=\"UTF-8\"\n",
     "MIME-Version: 1.0\n",
     "Content-Transfer-Encoding: 7bit\n",
     "to: ", to, "\n",
+    "bcc: ", bcc, "\n",
     "from: ", from, "\n",
     "subject: ", subject, "\n\n",
     message
