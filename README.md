@@ -1,15 +1,15 @@
 # cov-alert
 Monitor Nova Scotia COVID-19 testing data and send email notification if data changed.
 
-# Enable Gmail API from:
+## Enable Gmail API from:
 https://developers.google.com/gmail/api/quickstart/nodejs
 
-# Download DOWNLOAD CLIENT CONFIGURATION and save it for `CLIENT_SECRET`
+## Download CLIENT CONFIGURATION and save it for `CLIENT_SECRET`
 
-# ```npm install```
+## ```npm install```
 
-# Get access token:
+## Get access token:
 ```TO=my@gmail.com TOKEN_PATH=./my_token.json node renew```
 
-# Run:
+## Run:
 ```TO=my@gmail.com FROM=my@gmail.com CLIENT_SECRET=./my_secret_key.json TOKEN_PATH=./my_token.json node index```
