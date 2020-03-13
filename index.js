@@ -1,10 +1,12 @@
 const cron = require('node-cron');
-const puppeteer = require('puppeteer');
+const request = require('request');
+const HTMLParser = require('node-html-parser');
 const readline = require('readline');
 const { google } = require('googleapis');
 const fs = require('fs');
 
-const dataFile = './coronaData.json';
+const dataFile = './savedData.json';
+const caDataFile = '../covpy/caData.txt';
 const secret = fs.readFileSync(process.env.CLIENT_SECRET);
 
 // If modifying these scopes, delete token.json.
@@ -32,7 +34,7 @@ cron.schedule('* * * * *', async () => {
     });
   }
 
-  const coronaData = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+  const savedData = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
   const mail = {
     to: process.env.TO,
     bcc: process.env.BCC,
@@ -41,39 +43,39 @@ cron.schedule('* * * * *', async () => {
     content: ''
   }
 
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-  const page = await browser.newPage();
-
-  await page.goto('https://novascotia.ca/coronavirus/');
-
-  await page.waitForSelector('#corona-data');
-
-  const newData = await page.evaluate(() => {
-    const tableData = document.querySelectorAll('#corona-data td');
-    return {
-      title: document.querySelector('#cases p').textContent,
-      negative: tableData[0].textContent,
-      positive: tableData[1].textContent,
+  request({ url: 'https://novascotia.ca/coronavirus/', strictSSL: false }, (error, response, body) => {
+    const content = HTMLParser.parse(body);
+    const tableData = content.querySelectorAll('#corona-data td');
+    const newData = {
+      title: content.querySelector('#cases p').text,
+      negative: tableData[0].text,
+      positive: tableData[1].text,
     }
+
+    if (savedData.title !== newData.title || savedData.negative !== newData.negative || savedData.positive !== newData.positive) {
+      const caData = fs.readFileSync(caDataFile, 'utf8');
+      const nsData = 
+        `${newData.title}<br><br>
+        Negative: ${newData.negative}<br>
+        Positive: <b>${newData.positive}</b>
+        <br><br><br><br>`;
+      mail.subject = `+[${newData.positive}] ${newData.title}`;
+      mail.content = `${nsData} ${caData}`;
+
+      fs.writeFileSync(dataFile, JSON.stringify(newData));
+
+      //send mail
+      authorize(JSON.parse(secret), sendMessage);
+    }
+
+    console.log(newData);
   });
 
-  if (coronaData.title !== newData.title || coronaData.negative !== newData.negative || coronaData.positive !== newData.positive) {
-    mail.subject = `+[${newData.positive}] ${newData.title}`;
-    mail.content = JSON.stringify(newData, null, 2);
-
-    fs.writeFileSync(dataFile, JSON.stringify(newData));
-
-    //send mail
-    authorize(JSON.parse(secret), sendMessage);
-  }
-
-  console.log(newData);
-
-  browser.close();
+  
 });
 
 function makeBody(to, bcc, from, subject, message) {
-  var str = ["Content-Type: text/plain; charset=\"UTF-8\"\n",
+  var str = ["Content-Type: text/html; charset=\"UTF-8\"\n",
     "MIME-Version: 1.0\n",
     "Content-Transfer-Encoding: 7bit\n",
     "to: ", to, "\n",
