@@ -48,19 +48,26 @@ cron.schedule('* * * * *', async () => {
     const tableData = content.querySelectorAll('#corona-data td');
     const newData = {
       title: content.querySelector('#cases p').text,
-      negative: tableData[0].text,
-      positive: tableData[1].text,
+      confirmed_positive: tableData[0].text,
+      presumptive_positive: tableData[1].text,
+      negative: tableData[2].text,
     }
 
-    if (savedData.title !== newData.title || savedData.negative !== newData.negative || savedData.positive !== newData.positive) {
+    if (
+        savedData.title !== newData.title ||
+        savedData.confirmed_positive !== newData.confirmed_positive ||
+        savedData.presumptive_positive !== newData.presumptive_positive ||
+        savedData.negative !== newData.negative
+      ) {
       const caData = fs.readFileSync(caDataFile, 'utf8');
-      const nsData = 
+      const nsData =
         `${newData.title}<br><br>
-        Negative: ${newData.negative}<br>
-        Positive: <b>${newData.positive}</b>
-        <br><br><br><br>`;
-      mail.subject = `+[${newData.positive}] ${newData.title}`;
-      mail.content = `${nsData} ${caData}`;
+        Confirmed Positive: <b>${newData.confirmed_positive}</b><br>
+        Presumptive Positive: ${newData.presumptive_positive}<br>
+        Negative: ${newData.negative}
+        <br><br>*Source: https://novascotia.ca/coronavirus/<br><br>`;
+      mail.subject = `+[${newData.confirmed_positive}] ${newData.title}`;
+      mail.content = `${nsData} ${caData} <br><br>*Source: https://www.canada.ca/en/public-health/services/diseases/coronavirus-disease-covid-19.html`;
 
       fs.writeFileSync(dataFile, JSON.stringify(newData));
 
