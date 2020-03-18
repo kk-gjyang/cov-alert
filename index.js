@@ -46,8 +46,16 @@ cron.schedule('* * * * *', async () => {
   request({ url: 'https://novascotia.ca/coronavirus/', strictSSL: false }, (error, response, body) => {
     const content = HTMLParser.parse(body);
     const tableData = content.querySelectorAll('#corona-data td');
+    const tableTitle = content.querySelector('#cases p');
+
+    if (!tableData || !tableTitle) {
+      console.log('Page data updated, please adjust the selectors.');
+      console.log(new Date());
+      return;
+    }
+
     const newData = {
-      title: content.querySelector('#cases p').text,
+      title: tableTitle.text,
       confirmed_positive: tableData[0].text,
       presumptive_positive: tableData[1].text,
       negative: tableData[2].text,
@@ -76,6 +84,7 @@ cron.schedule('* * * * *', async () => {
     }
 
     console.log(newData);
+    console.log(new Date());
   });
 
   
