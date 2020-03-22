@@ -8,6 +8,8 @@ const fs = require('fs');
 const dataFile = './savedData.json';
 const caDataFile = '../covpy/caData.txt';
 const secret = fs.readFileSync(process.env.CLIENT_SECRET);
+const sourceCa = 'https://www.canada.ca/en/public-health/services/diseases/2019-novel-coronavirus-infection.html';
+const sourceNs = 'https://novascotia.ca/coronavirus/';
 
 // If modifying these scopes, delete token.json.
 const SCOPES = [
@@ -43,7 +45,7 @@ cron.schedule('* * * * *', async () => {
     content: ''
   }
 
-  request({ url: 'https://novascotia.ca/coronavirus/', strictSSL: false }, (error, response, body) => {
+  request({ url: sourceNs, strictSSL: false }, (error, response, body) => {
     const content = HTMLParser.parse(body);
     const tableData = content.querySelectorAll('#corona-data td');
     const tableTitle = content.querySelector('#cases p');
@@ -56,26 +58,23 @@ cron.schedule('* * * * *', async () => {
 
     const newData = {
       title: tableTitle.text,
-      confirmed_positive: tableData[0].text,
-      presumptive_positive: tableData[1].text,
-      negative: tableData[2].text,
+      positive: tableData[0].text,
+      negative: tableData[1].text,
     }
 
     if (
         savedData.title !== newData.title ||
-        savedData.confirmed_positive !== newData.confirmed_positive ||
-        savedData.presumptive_positive !== newData.presumptive_positive ||
+        savedData.positive !== newData.positive ||
         savedData.negative !== newData.negative
       ) {
       const caData = fs.readFileSync(caDataFile, 'utf8');
       const nsData =
         `${newData.title}<br><br>
-        Confirmed Positive: <b>${newData.confirmed_positive}</b><br>
-        Presumptive Positive: ${newData.presumptive_positive}<br>
+        Positive: <b>${newData.positive}</b><br>
         Negative: ${newData.negative}
-        <br><br>*Source: https://novascotia.ca/coronavirus/<br><br>`;
-      mail.subject = `+[${newData.confirmed_positive}] ${newData.title}`;
-      mail.content = `${nsData} ${caData} <br><br>*Source: https://www.canada.ca/en/public-health/services/diseases/coronavirus-disease-covid-19.html`;
+        <br><br>*Source: ${sourceNs}<br><br>`;
+      mail.subject = `+[${newData.positive}] ${newData.title}`;
+      mail.content = `${nsData} ${caData} <br>*Source: ${sourceCa}`;
 
       fs.writeFileSync(dataFile, JSON.stringify(newData));
 
