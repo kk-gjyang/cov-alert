@@ -1,6 +1,5 @@
 const cron = require('node-cron');
 const request = require('request');
-const HTMLParser = require('node-html-parser');
 const readline = require('readline');
 const { google } = require('googleapis');
 const fs = require('fs');
@@ -9,7 +8,8 @@ const dataFile = './savedData.json';
 const caDataFile = '../covpy/caData.txt';
 const secret = fs.readFileSync(process.env.CLIENT_SECRET);
 const sourceCa = 'https://www.canada.ca/en/public-health/services/diseases/2019-novel-coronavirus-infection.html';
-const sourceNs = 'https://novascotia.ca/coronavirus/';
+const sourceNs = 'https://novascotia.ca/coronavirus/data/';
+const sourceNsData = 'https://novascotia.ca/coronavirus/data/COVID-19-data.csv';
 
 // If modifying these scopes, delete token.json.
 const SCOPES = [
@@ -36,7 +36,6 @@ cron.schedule('* * * * *', async () => {
     });
   }
 
-  const savedData = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
   const mail = {
     to: process.env.TO,
     bcc: process.env.BCC,
@@ -45,48 +44,52 @@ cron.schedule('* * * * *', async () => {
     content: ''
   }
 
-  request({ url: sourceNs, strictSSL: false }, (error, response, body) => {
-    const content = HTMLParser.parse(body);
-    const tableData = content.querySelectorAll('#corona-data td');
-    const tableTitle = content.querySelector('#cases p');
+  request({ url: sourceNsData, strictSSL: false }, (error, response, body) => {
+    const rows = body.split('\n');
+    const lastRow = rows[rows.length - 1].split(',');
+    const lastDate = lastRow[0];
+    const thisDate = new Date().toLocaleString("en-CA", { timeZone: "America/Halifax" }).split(',')[0];
 
-    if (!tableData || !tableTitle) {
-      console.log('Page data updated, please adjust the selectors.');
-      console.log(new Date());
-      return;
-    }
+    if (lastDate === thisDate) {
+      let total = 0;
 
-    const newData = {
-      title: tableTitle.text,
-      positive: tableData[0].text,
-      negative: tableData[1].text,
-    }
+      rows.forEach(row => {
+        const columns = row.split(',');
+        const newCases = columns[1];
 
-    if (
+        if (!isNaN(newCases)) total += parseInt(newCases);
+      });
+
+      const newData = {
+        title: lastDate,
+        positive: total.toString(),
+        negative: lastRow[2]
+      };
+
+      const savedData = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+
+      if (
         savedData.title !== newData.title ||
         savedData.positive !== newData.positive ||
         savedData.negative !== newData.negative
       ) {
-      const caData = fs.readFileSync(caDataFile, 'utf8');
-      const nsData =
-        `${newData.title}<br><br>
+        const caData = fs.readFileSync(caDataFile, 'utf8');
+        const nsData =
+          `Novel coronavirus (COVID-19) cases in Nova Scotia<br><br>
         Positive: <b>${newData.positive}</b><br>
         Negative: ${newData.negative}
         <br><br>*Source: ${sourceNs}<br><br>`;
-      mail.subject = `+[${newData.positive}] ${newData.title}`;
-      mail.content = `${nsData} ${caData} <br>*Source: ${sourceCa}`;
+        mail.subject = `+[${newData.positive}] Cronavirus cases in Nova Scotia - ${newData.title}`;
+        mail.content = `${nsData} ${caData} <br>*Source: ${sourceCa}`;
 
-      fs.writeFileSync(dataFile, JSON.stringify(newData));
+        fs.writeFileSync(dataFile, JSON.stringify(newData));
 
-      //send mail
-      authorize(JSON.parse(secret), sendMessage);
+        //send mail
+        authorize(JSON.parse(secret), sendMessage);
+      }
     }
-
-    console.log(newData);
-    console.log(new Date());
   });
 
-  
 });
 
 function makeBody(to, bcc, from, subject, message) {
