@@ -1,7 +1,7 @@
 # cov-alert
 Monitor Nova Scotia COVID-19 testing data and send email notification if data changed.
 
-*Data source: https://novascotia.ca/coronavirus/
+*Data source: https://novascotia.ca/coronavirus/data/
 
 ## Enable Gmail API from:
 https://developers.google.com/gmail/api/quickstart/nodejs
