@@ -45,7 +45,16 @@ cron.schedule('* * * * *', async () => {
   }
 
   request({ url: sourceNsData, strictSSL: false }, (error, response, body) => {
-    const rows = body.split('\n');
+    let rows = [];
+
+    try {
+      rows = body.split('\n');
+    } catch (err) {
+      console.log(err);
+    }
+
+    if (rows.length === 0) return;
+
     const lastRow = rows[rows.length - 1].split(',');
     const lastDate = lastRow[0];
     const thisDate = new Date().toLocaleString("en-CA", { timeZone: "America/Halifax" }).split(',')[0];
